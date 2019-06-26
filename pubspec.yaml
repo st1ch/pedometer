@@ -1,0 +1,21 @@
+name: pedometer
+description: Pedometer plugin
+version: 0.0.1
+author: Artem Getman <a.e.getman@gmail.com>
+homepage:
+
+environment:
+  sdk: ">=2.1.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    androidPackage: io.playseek.plugin.pedometer
+    pluginClass: PedometerPlugin
