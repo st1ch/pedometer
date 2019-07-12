@@ -1,7 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:pedometer/pedometer.dart';
 
 void main() => runApp(MyApp());
@@ -12,33 +13,36 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  int _currentSteps = 0;
+  int _todaySteps = 0;
+  int _sessionSteps = 0;
   StreamSubscription _pedometerSubscription;
 
   @override
-  void initState() {
-    super.initState();
-    setUpPedometer();
-  }
-
-  @override
   void dispose() {
-    _pedometerSubscription.cancel();
+    _pedometerSubscription?.cancel();
     super.dispose();
   }
 
   Future<void> setUpPedometer() async {
     if (_pedometerSubscription == null || _pedometerSubscription.isPaused) {
       _pedometerSubscription = PedometerPlugin.stepCountStream.listen(
-        (steps) async {
+        (stepsJson) async {
+          var steps = json.decode(stepsJson);
           setState(() {
-            _currentSteps = steps;
+            _todaySteps = steps['today'];
+            _sessionSteps = steps['session'];
           });
         },
         onError: (e) {},
         cancelOnError: true,
       );
     }
+  }
+
+  Future<void> stopPedometer() async {
+    PedometerPlugin.removePedometer();
+    _pedometerSubscription?.cancel();
+    _pedometerSubscription = null;
   }
 
   @override
@@ -49,15 +53,48 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Plugin example app'),
         ),
         body: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Column(
             children: <Widget>[
-              Text(
-                'Current steps: ',
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Today steps: ',
+                  ),
+                  Text(
+                    '$_todaySteps',
+                    style: TextStyle(fontSize: 24.0),
+                  ),
+                ],
               ),
-              Text(
-                '$_currentSteps',
-                style: TextStyle(fontSize: 24.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Session steps: ',
+                  ),
+                  Text(
+                    '$_sessionSteps',
+                    style: TextStyle(fontSize: 24.0),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text('Start service'),
+                    onPressed: () {
+                      setUpPedometer();
+                    },
+                  ),
+                  RaisedButton(
+                    child: Text('Stop service'),
+                    onPressed: () {
+                      stopPedometer();
+                    },
+                  ),
+                ],
               ),
             ],
           ),

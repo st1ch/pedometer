@@ -2,12 +2,9 @@
   package="io.playseek.plugin.pedometer">
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.BIND_JOB_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application>
-        <receiver android:name="io.playseek.plugin.pedometer.PedometerBroadcastReceiver"
-                  android:enabled="true"
-                  android:exported="true"/>
         <receiver android:name="io.playseek.plugin.pedometer.PedometerRebootBroadcastReceiver"
                   android:enabled="true">
             <intent-filter>
@@ -15,8 +12,9 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="io.playseek.plugin.pedometer.PedometerService"
-                 android:permission="android.permission.BIND_JOB_SERVICE"
-                 android:exported="true"/>
+        <service
+                android:name=".PedometerService"
+                android:enabled="true"
+                android:exported="true"/>
     </application>
 </manifest>

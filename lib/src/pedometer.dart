@@ -16,16 +16,16 @@ class PedometerPlugin {
   static Future<bool> initialize() async {
     final callback = PluginUtilities.getCallbackHandle(callbackDispatcher);
     return _methodChannel.invokeMethod(
-        'Pedometer.initializeService', <dynamic>[callback.toRawHandle()]);
+        'PedometerPlugin.initializeService', <dynamic>[callback.toRawHandle()]);
   }
 
   static Future<bool> registerPedometer() {
-    return _methodChannel.invokeMethod('Pedometer.registerPedometer');
+    return _methodChannel.invokeMethod('PedometerPlugin.registerPedometer');
   }
 
-  static Stream<int> _pedometerStream;
+  static Stream<String> _pedometerStream;
 
-  static Stream<int> get stepCountStream {
+  static Stream<String> get stepCountStream {
     if (_pedometerStream == null) {
       final callback = PluginUtilities.getCallbackHandle(callbackDispatcher);
 
@@ -102,10 +102,10 @@ class PedometerPlugin {
 //    final List<dynamic> args = <dynamic>[
 //      PluginUtilities.getCallbackHandle(callback).toRawHandle()
 //    ];
-    await _methodChannel.invokeMethod('Pedometer.registerPedometer');
+    await _methodChannel.invokeMethod('PedometerPlugin.registerPedometer');
   }
 
   /// Stop receiving pedometer events.
   static Future<bool> removePedometer() async =>
-      _methodChannel.invokeMethod('Pedometer.removePedometer');
+      _methodChannel.invokeMethod('PedometerPlugin.removePedometer');
 }

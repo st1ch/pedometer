@@ -1,133 +1,190 @@
 package io.playseek.plugin.pedometer
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.app.Activity
-import android.app.PendingIntent
 import android.os.IBinder
-import android.os.PowerManager
-import android.support.v4.app.JobIntentService
+import android.support.v4.app.NotificationCompat
+import android.os.Build
+import android.app.PendingIntent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.util.Log
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.PluginRegistry.PluginRegistrantCallback
-import io.flutter.view.FlutterCallbackInformation
-import io.flutter.view.FlutterMain
-import io.flutter.view.FlutterNativeView
-import io.flutter.view.FlutterRunArguments
-import java.util.ArrayDeque
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.*
 
-class PedometerService : MethodCallHandler, JobIntentService() {
-    private val queue = ArrayDeque<List<Any>>()
-    private lateinit var mBackgroundChannel: MethodChannel
-    private lateinit var mContext: Context
-
+class PedometerService : Service() {
     companion object {
         @JvmStatic
         private val TAG = "PedometerService"
         @JvmStatic
-        private val JOB_ID = UUID.randomUUID().mostSignificantBits.toInt()
+        private val CHANNEL_ID = "pedometer_plugin_channel"
         @JvmStatic
-        private var sBackgroundFlutterView: FlutterNativeView? = null
+        val BROADCAST_RECEIVER_ID = "pedometer_broadcast_receiver"
         @JvmStatic
-        private val sServiceStarted = AtomicBoolean(false)
+        private val pedometerCacheLock = Object()
+        @JvmStatic
+        val PERSISTENT_PEDOMETER_KEY = "persistent_pedometer"
+        @JvmStatic
+        val PERSISTENT_PEDOMETER_SESSION_STEPS_KEY = "$PERSISTENT_PEDOMETER_KEY/session_steps"
+        @JvmStatic
+        val SHARED_PREFERENCES_KEY = "pedometer_plugin_cache"
+        @JvmStatic
+        private var sensorEventListener: SensorEventListener? = null
+    }
 
-        @JvmStatic
-        private lateinit var sPluginRegistrantCallback: PluginRegistrantCallback
+    override fun onBind(p0: Intent): IBinder? {
+        return null
+    }
 
-        @JvmStatic
-        fun enqueueWork(context: Context, work: Intent) {
-            enqueueWork(context, PedometerPlugin::class.java, JOB_ID, work)
-        }
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand")
+        createNotificationChannel()
 
-        @JvmStatic
-        fun setPluginRegistrant(callback: PluginRegistrantCallback) {
-            sPluginRegistrantCallback = callback
+        val notificationIntent = Intent("pedometer_action")
+        val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                notificationIntent,
+                0
+        )
+        val imageId = resources.getIdentifier(
+                "ic_launcher",
+                "mipmap",
+                packageName
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Pedometer!")
+                .setContentText("Steps recognition enabled")
+                .setSmallIcon(imageId)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setContentIntent(pendingIntent)
+                .build()
+
+        startForeground(1, notification)
+
+        registerPedometer()
+
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        removePedometer()
+        super.onDestroy()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val serviceChannel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Pedometer Plugin",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(serviceChannel)
         }
     }
 
-    private fun startPedometerService(context: Context) {
-        synchronized(sServiceStarted) {
-            mContext = context
-            if (sBackgroundFlutterView == null) {
-                val callbackHandle = context.getSharedPreferences(
-                        PedometerPlugin.SHARED_PREFERENCES_KEY,
-                        Context.MODE_PRIVATE)
-                        .getLong(PedometerPlugin.CALLBACK_DISPATCHER_HANDLE_KEY, 0)
+    private fun registerPedometer() {
+        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-                val callbackInfo = FlutterCallbackInformation.lookupCallbackInformation(callbackHandle)
-                if (callbackInfo == null) {
-                    Log.e(TAG, "Fatal: failed to find callback")
-                    return
+        if (sensorEventListener == null) {
+            sensorEventListener = sensorEventListener(this, true)
+        }
+
+        sensorManager.registerListener(
+                sensorEventListener,
+                sensor,
+                SensorManager.SENSOR_DELAY_FASTEST
+        )
+    }
+
+    private fun removePedometer() {
+        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        sensorManager.unregisterListener(sensorEventListener)
+    }
+
+    private fun sensorEventListener(context: Context, cache: Boolean): SensorEventListener {
+        return object : SensorEventListener {
+            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
+
+            override fun onSensorChanged(event: SensorEvent) {
+                val stepCount = event.values[0].toInt()
+                if (cache) {
+                    addPedometerToCache(context, stepCount, shouldLog = true)
                 }
-                Log.i(TAG, "Starting PedometerService...")
-                sBackgroundFlutterView = FlutterNativeView(context, true)
-
-                val registry = sBackgroundFlutterView!!.pluginRegistry
-                sPluginRegistrantCallback.registerWith(registry)
-                val args = FlutterRunArguments()
-                args.bundlePath = FlutterMain.findAppBundlePath(context)
-                args.entrypoint = callbackInfo.callbackName
-                args.libraryPath = callbackInfo.callbackLibraryPath
-
-                sBackgroundFlutterView!!.runFromBundle(args)
-                IsolateHolderService.setBackgroundFlutterView(sBackgroundFlutterView)
             }
         }
-        mBackgroundChannel = MethodChannel(sBackgroundFlutterView,
-                "io.playseek.plugin.pedometer.background")
-        mBackgroundChannel.setMethodCallHandler(this)
     }
 
-    override fun onMethodCall(call: MethodCall, result: Result) {
-        when(call.method) {
-            "PedometerService.initialized" -> {
-                synchronized(sServiceStarted) {
-                    while (!queue.isEmpty()) {
-                        mBackgroundChannel.invokeMethod("", queue.remove())
-                    }
-                    sServiceStarted.set(true)
-                }
+    private fun addPedometerToCache(context: Context, sessionSteps: Int, shouldLog: Boolean = false) {
+        synchronized(pedometerCacheLock) {
+            val p = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+
+            val date = Date()
+            val dateFormat = SimpleDateFormat("dd-MM-yyyy")
+            val today = dateFormat.format(date)
+            val todayPersistentKey = getPersistentPedometerKey(today)
+
+            val cachedSessionSteps = p.getInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
+            val cachedTodaySteps = p.getInt(todayPersistentKey, 0)
+
+            val newSteps = sessionSteps - cachedSessionSteps
+            val todaySteps = cachedTodaySteps + newSteps
+
+            if (shouldLog) {
+                Log.i(TAG, ">>> >>> >>> >>> >>> >>> >>>")
+                Log.i(TAG, ">>> CACHED SESSION STEPS: $cachedSessionSteps")
+                Log.i(TAG, ">>> SESSION STEPS: $sessionSteps")
+                Log.i(TAG, ">>> NEW STEPS: $newSteps")
+                Log.i(TAG, ">>> CACHED TODAY STEPS: $cachedTodaySteps")
+                Log.i(TAG, ">>> TODAY STEPS: $todaySteps")
+                Log.i(TAG, ">>> >>> >>> >>> >>> >>> >>>")
             }
-            "PedometerService.promoteToForeground" -> {
-                mContext.startForegroundService(Intent(mContext, IsolateHolderService::class.java))
-            }
-            "PedometerService.demoteToBackground" -> {
-                val intent = Intent(mContext, IsolateHolderService::class.java)
-                intent.setAction(IsolateHolderService.ACTION_SHUTDOWN)
-                mContext.startForegroundService(intent)
-            }
-            else -> result.notImplemented()
+
+            // save today steps
+            p
+                    .edit()
+                    .putInt(todayPersistentKey, todaySteps)
+                    .apply()
+
+            // save session steps
+            p
+                    .edit()
+                    .putInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, sessionSteps)
+                    .apply()
+
+            sendBroadcast(todaySteps, sessionSteps)
         }
-        result.success(null)
     }
 
-    override fun onCreate() {
-        super.onCreate()
-        Log.d(TAG, "onCreate ")
-        startPedometerService(this)
+    private fun sendBroadcast(todaySteps: Int, sessionSteps: Int) {
+        val intent = Intent().setAction(BROADCAST_RECEIVER_ID)
+        intent.putExtra("today", todaySteps)
+        intent.putExtra("session", sessionSteps)
+        sendBroadcast(intent)
     }
 
-    override fun onHandleWork(intent: Intent) {
-        val callbackHandle = intent.getLongExtra(PedometerPlugin.CALLBACK_HANDLE_KEY, 0)
-        Log.e(TAG, ">>>> ON HANDLE WORK")
-
-        synchronized(sServiceStarted) {
-            if (!sServiceStarted.get()) {
-                // Queue up geofencing events while background isolate is starting
-//                queue.add(geofenceUpdateList)
-            } else {
-                // Callback method name is intentionally left blank.
-//                mBackgroundChannel.invokeMethod("", geofenceUpdateList)
+    private fun removePedometerFromCache(context: Context, date: String) {
+        synchronized(pedometerCacheLock) {
+            val p = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val persistentPedometer = p.getInt(getPersistentPedometerKey(date), 0)
+            if (persistentPedometer == 0) {
+                return
             }
+            p.edit()
+                    .remove(getPersistentPedometerKey(date))
+                    .apply()
         }
+    }
+
+    private fun getPersistentPedometerKey(date: String): String {
+        return "$PERSISTENT_PEDOMETER_KEY/$date"
     }
 }
