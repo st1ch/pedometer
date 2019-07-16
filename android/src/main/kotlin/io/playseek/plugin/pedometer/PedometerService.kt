@@ -49,7 +49,7 @@ class PedometerService : Service() {
         Log.d(TAG, "onStartCommand")
         createNotificationChannel()
 
-        val notificationIntent = Intent("pedometer_action")
+        val notificationIntent = Intent(this, getMainActivityClass(this))
         val pendingIntent = PendingIntent.getActivity(
                 this,
                 0,
@@ -93,6 +93,18 @@ class PedometerService : Service() {
     override fun onDestroy() {
         removePedometer()
         super.onDestroy()
+    }
+
+    private fun getMainActivityClass(context: Context): Class<*>? {
+        val packageName = context.packageName
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+        val className = launchIntent!!.component!!.className
+        try {
+            return Class.forName(className)
+        } catch (e: ClassNotFoundException) {
+            e.printStackTrace()
+            return null
+        }
     }
 
     private fun getTitle(): String {
