@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 
 import 'package:pedometer/pedometer.dart';
@@ -15,6 +16,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _todaySteps = 0;
   int _sessionSteps = 0;
+  int _dateSteps = 0;
+  DateTime _date;
   StreamSubscription _pedometerSubscription;
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -47,6 +50,36 @@ class _MyAppState extends State<MyApp> {
     PedometerPlugin.removePedometer();
     _pedometerSubscription?.cancel();
     _pedometerSubscription = null;
+  }
+
+  Future<void> getCachedTodaySteps() async {
+    var steps = await PedometerPlugin.getTodaySteps();
+    setState(() {
+      _todaySteps = steps;
+    });
+  }
+
+  Future<void> getCachedSessionSteps() async {
+    var steps = await PedometerPlugin.getSessionSteps();
+    setState(() {
+      _sessionSteps = steps;
+    });
+  }
+
+  Future<void> getCachedDateSteps(BuildContext context) async {
+    var date = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2019, 1, 1),
+      lastDate: DateTime.now(),
+    );
+    if (date != null) {
+      var steps = await PedometerPlugin.getDateSteps(date);
+      setState(() {
+        _date = date;
+        _dateSteps = steps;
+      });
+    }
   }
 
   @override
@@ -121,6 +154,58 @@ class _MyAppState extends State<MyApp> {
                       decoration:
                           InputDecoration.collapsed(hintText: "Description"),
                     ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text('Cached today steps'),
+                    onPressed: () {
+                      getCachedTodaySteps();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text('Cached session steps'),
+                    onPressed: () {
+                      getCachedSessionSteps();
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    _date != null
+                        ? '${DateFormat('dd-MM-yyyy').format(_date)} steps: '
+                        : 'Select date',
+                  ),
+                  Text(
+                    '$_dateSteps',
+                    style: TextStyle(fontSize: 24.0),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Builder(
+                    builder: (context) => RaisedButton(
+                          child: Text('Cached DATE steps'),
+                          onPressed: () {
+                            getCachedDateSteps(context);
+                          },
+                        ),
                   ),
                 ],
               ),

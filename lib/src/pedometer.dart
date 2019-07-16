@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart';
 import 'callback_dispatcher.dart';
+import 'package:intl/intl.dart';
 
 class PedometerPlugin {
   static const EventChannel _eventChannel =
@@ -95,5 +96,21 @@ class PedometerPlugin {
       _methodChannel.invokeMethod(
         'PedometerPlugin.setNotificationDescription',
         description,
+      );
+
+  static Future<int> getTodaySteps() async => _methodChannel.invokeMethod(
+        'PedometerPlugin.getTodaySteps',
+      );
+
+  static Future<int> getDateSteps(DateTime date) async {
+    DateFormat format = DateFormat('dd-MM-yyyy');
+    return _methodChannel.invokeMethod(
+      'PedometerPlugin.getDateSteps',
+      format.format(date),
+    );
+  }
+
+  static Future<int> getSessionSteps() async => _methodChannel.invokeMethod(
+        'PedometerPlugin.getSessionSteps',
       );
 }

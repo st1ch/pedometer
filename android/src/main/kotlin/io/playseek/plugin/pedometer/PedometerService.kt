@@ -147,6 +147,40 @@ class PedometerService : Service() {
         }
     }
 
+    private fun getCachedSessionSteps(): Int {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            return p.getInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
+        }
+    }
+
+    private fun getCachedTodaySteps(): Int {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            return p.getInt(getTodayKey(), 0)
+        }
+    }
+
+    private fun getCachedDaySteps(date: Date): Int {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            return p.getInt(getTodayKey(date), 0)
+        }
+    }
+
+    private fun getCachedDayStringSteps(dateString: String): Int {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            return p.getInt(getPersistentPedometerKey(dateString), 0)
+        }
+    }
+
+    private fun getTodayKey(date: Date = Date()): String {
+        val dateFormat = SimpleDateFormat("dd-MM-yyyy")
+        val today = dateFormat.format(date)
+        return getPersistentPedometerKey(today)
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
@@ -196,10 +230,7 @@ class PedometerService : Service() {
         synchronized(pedometerCacheLock) {
             val p = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
 
-            val date = Date()
-            val dateFormat = SimpleDateFormat("dd-MM-yyyy")
-            val today = dateFormat.format(date)
-            val todayPersistentKey = getPersistentPedometerKey(today)
+            val todayPersistentKey = getTodayKey()
 
             val cachedSessionSteps = p.getInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
             val cachedTodaySteps = p.getInt(todayPersistentKey, 0)

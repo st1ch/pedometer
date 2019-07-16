@@ -138,6 +138,43 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
                     .putString(PedometerService.DESCRIPTION_KEY, description)
                     .apply()
         }
+
+        @JvmStatic
+        private fun getCachedSessionSteps(context: Context,
+                                          result: Result) {
+            val p = context.getSharedPreferences(PedometerService.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val steps = p.getInt(PedometerService.PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
+            result.success(steps)
+        }
+
+        @JvmStatic
+        private fun getCachedTodaySteps(context: Context,
+                                        result: Result) {
+            val p = context.getSharedPreferences(PedometerService.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val steps = p.getInt(getTodayKey(), 0)
+            result.success(steps)
+        }
+
+        @JvmStatic
+        private fun getCachedDaySteps(context: Context,
+                                      result: Result,
+                                      dateString: String) {
+            val p = context.getSharedPreferences(PedometerService.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val steps = p.getInt(getPersistentPedometerKey(dateString), 0)
+            result.success(steps)
+        }
+
+        @JvmStatic
+        private fun getTodayKey(date: Date = Date()): String {
+            val dateFormat = SimpleDateFormat("dd-MM-yyyy")
+            val today = dateFormat.format(date)
+            return getPersistentPedometerKey(today)
+        }
+
+        @JvmStatic
+        private fun getPersistentPedometerKey(date: String): String {
+            return "${PedometerService.PERSISTENT_PEDOMETER_KEY}/$date"
+        }
     }
 
     override fun onListen(arguments: Any, events: EventChannel.EventSink) {
@@ -161,6 +198,9 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
             "PedometerPlugin.removePedometer" -> stopService(mContext)
             "PedometerPlugin.setNotificationTitle" -> saveTitle(mContext, call.arguments as String)
             "PedometerPlugin.setNotificationDescription" -> saveDescription(mContext, call.arguments as String)
+            "PedometerPlugin.getTodaySteps" -> getCachedTodaySteps(mContext, result)
+            "PedometerPlugin.getSessionSteps" -> getCachedSessionSteps(mContext, result)
+            "PedometerPlugin.getDateSteps" -> getCachedDaySteps(mContext, result, call.arguments as String)
             else -> result.notImplemented()
         }
     }
