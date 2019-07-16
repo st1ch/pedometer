@@ -78,6 +78,8 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
             if (!isMyServiceRunning(context, PedometerService::class.java)) {
                 Log.i(TAG, ">>> START")
                 val serviceIntent = Intent(context, PedometerService::class.java)
+                serviceIntent.putExtra("notification_title", "My Title")
+                serviceIntent.putExtra("notification_description", "My Description >>> Service running")
                 ContextCompat.startForegroundService(context, serviceIntent)
             }
             if (activityReceiver != null) {
@@ -118,6 +120,24 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
             startService(context, events)
             result?.success(true)
         }
+
+        @JvmStatic
+        private fun saveTitle(context: Context,
+                              title: String) {
+            context.getSharedPreferences(PedometerService.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(PedometerService.TITLE_KEY, title)
+                    .apply()
+        }
+
+        @JvmStatic
+        private fun saveDescription(context: Context,
+                                    description: String) {
+            context.getSharedPreferences(PedometerService.SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(PedometerService.DESCRIPTION_KEY, description)
+                    .apply()
+        }
     }
 
     override fun onListen(arguments: Any, events: EventChannel.EventSink) {
@@ -139,6 +159,8 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
             }
             "PedometerPlugin.registerPedometer" -> startService(mContext, null)
             "PedometerPlugin.removePedometer" -> stopService(mContext)
+            "PedometerPlugin.setNotificationTitle" -> saveTitle(mContext, call.arguments as String)
+            "PedometerPlugin.setNotificationDescription" -> saveDescription(mContext, call.arguments as String)
             else -> result.notImplemented()
         }
     }

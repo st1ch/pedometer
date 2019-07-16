@@ -20,6 +20,9 @@ class PedometerPlugin {
   }
 
   static Future<bool> registerPedometer() {
+    if (Platform.isIOS) {
+      throw UnsupportedError("iOS does not support 'PedometerPlugin'");
+    }
     return _methodChannel.invokeMethod('PedometerPlugin.registerPedometer');
   }
 
@@ -77,35 +80,20 @@ class PedometerPlugin {
 //
 //    return 0;
 //  }
-  /// Promote the pedometer service to a foreground service.
-  ///
-  /// Will throw an exception if called anywhere except for a pedometer
-  /// callback.
-  static Future<void> promoteToForeground() async => await _backgroundChannel
-      .invokeMethod('PedometerService.promoteToForeground');
-
-  /// Demote the pedometer service from a foreground service to a background
-  /// service.
-  ///
-  /// Will throw an exception if called anywhere except for a pedometer
-  /// callback.
-  static Future<void> demoteToBackground() async => await _backgroundChannel
-      .invokeMethod('PedometerService.demoteToBackground');
-
-  /// Register for pedometer events.
-  ///
-  /// `callback` is the method to be called when a pedometer event occurs.
-  static Future<void> registerPedometerC() async {
-    if (Platform.isIOS) {
-      throw UnsupportedError("iOS does not support 'PedometerPlugin'");
-    }
-//    final List<dynamic> args = <dynamic>[
-//      PluginUtilities.getCallbackHandle(callback).toRawHandle()
-//    ];
-    await _methodChannel.invokeMethod('PedometerPlugin.registerPedometer');
-  }
 
   /// Stop receiving pedometer events.
   static Future<bool> removePedometer() async =>
       _methodChannel.invokeMethod('PedometerPlugin.removePedometer');
+
+  static Future<bool> setNotificationTitle(String title) async =>
+      _methodChannel.invokeMethod(
+        'PedometerPlugin.setNotificationTitle',
+        title,
+      );
+
+  static Future<bool> setNotificationDescription(String description) async =>
+      _methodChannel.invokeMethod(
+        'PedometerPlugin.setNotificationDescription',
+        description,
+      );
 }

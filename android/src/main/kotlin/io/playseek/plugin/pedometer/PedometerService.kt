@@ -34,6 +34,10 @@ class PedometerService : Service() {
         @JvmStatic
         val SHARED_PREFERENCES_KEY = "pedometer_plugin_cache"
         @JvmStatic
+        val TITLE_KEY = "notification_title"
+        @JvmStatic
+        val DESCRIPTION_KEY = "notification_description"
+        @JvmStatic
         private var sensorEventListener: SensorEventListener? = null
     }
 
@@ -58,9 +62,22 @@ class PedometerService : Service() {
                 packageName
         )
 
+//        var title = intent.getStringExtra("notification_title")
+//        if (title == null || title.isEmpty()) {
+//            title = "Pedometer"
+//        }
+//
+//        var description = intent.getStringExtra("notification_description")
+//        if (description == null || description.isEmpty()) {
+//            description = "Steps recognition enabled"
+//        }
+
+        val title = getTitle()
+        val description = getDescription()
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Pedometer!")
-                .setContentText("Steps recognition enabled")
+                .setContentTitle(title)
+                .setContentText(description)
                 .setSmallIcon(imageId)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(pendingIntent)
@@ -76,6 +93,46 @@ class PedometerService : Service() {
     override fun onDestroy() {
         removePedometer()
         super.onDestroy()
+    }
+
+    private fun getTitle(): String {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val title = p.getString(TITLE_KEY, "")
+            if (title == null || title.isEmpty()) {
+                return "Pedometer"
+            }
+            return title
+        }
+    }
+
+    private fun saveTitle(title: String) {
+        synchronized(pedometerCacheLock) {
+            getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(TITLE_KEY, title)
+                    .apply()
+        }
+    }
+
+    private fun getDescription(): String {
+        synchronized(pedometerCacheLock) {
+            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+            val title = p.getString(DESCRIPTION_KEY, "")
+            if (title == null || title.isEmpty()) {
+                return "Steps recognition enabled"
+            }
+            return title
+        }
+    }
+
+    private fun saveDescription(description: String) {
+        synchronized(pedometerCacheLock) {
+            getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(DESCRIPTION_KEY, description)
+                    .apply()
+        }
     }
 
     private fun createNotificationChannel() {

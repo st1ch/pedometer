@@ -16,6 +16,8 @@ class _MyAppState extends State<MyApp> {
   int _todaySteps = 0;
   int _sessionSteps = 0;
   StreamSubscription _pedometerSubscription;
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
 
   @override
   void dispose() {
@@ -24,6 +26,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> setUpPedometer() async {
+    PedometerPlugin.setNotificationTitle(titleController.text);
+    PedometerPlugin.setNotificationDescription(descriptionController.text);
     if (_pedometerSubscription == null || _pedometerSubscription.isPaused) {
       _pedometerSubscription = PedometerPlugin.stepCountStream.listen(
         (stepsJson) async {
@@ -93,6 +97,30 @@ class _MyAppState extends State<MyApp> {
                     onPressed: () {
                       stopPedometer();
                     },
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: titleController,
+                      decoration: InputDecoration.collapsed(hintText: "Title"),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: descriptionController,
+                      decoration:
+                          InputDecoration.collapsed(hintText: "Description"),
+                    ),
                   ),
                 ],
               ),
