@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.IBinder
 import android.support.v4.app.NotificationCompat
 import android.os.Build
@@ -193,11 +194,11 @@ class PedometerService : Service() {
     }
 
     private fun registerPedometer() {
-        val useAccelerometor = true
-        if (useAccelerometor) {
-            registerAccelerometerPedometer()
-        } else {
+        val useStepCounter = packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_STEP_COUNTER)
+        if (useStepCounter) {
             registerStepCounterPedometer()
+        } else {
+            registerAccelerometerPedometer()
         }
     }
 
