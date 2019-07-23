@@ -39,6 +39,18 @@ class PedometerService : Service() {
         val DESCRIPTION_KEY = "notification_description"
         @JvmStatic
         private var sensorEventListener: SensorEventListener? = null
+
+        @JvmStatic
+        fun getPersistentPedometerKey(date: String): String {
+            return "$PERSISTENT_PEDOMETER_KEY/$date"
+        }
+
+        @JvmStatic
+        fun getTodayKey(date: Date = Date()): String {
+            val dateFormat = SimpleDateFormat("dd-MM-yyyy")
+            val today = dateFormat.format(date)
+            return getPersistentPedometerKey(today)
+        }
     }
 
     override fun onBind(p0: Intent): IBinder? {
@@ -168,19 +180,6 @@ class PedometerService : Service() {
         }
     }
 
-    private fun getCachedDayStringSteps(dateString: String): Int {
-        synchronized(pedometerCacheLock) {
-            val p = getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-            return p.getInt(getPersistentPedometerKey(dateString), 0)
-        }
-    }
-
-    private fun getTodayKey(date: Date = Date()): String {
-        val dateFormat = SimpleDateFormat("dd-MM-yyyy")
-        val today = dateFormat.format(date)
-        return getPersistentPedometerKey(today)
-    }
-
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
@@ -194,6 +193,15 @@ class PedometerService : Service() {
     }
 
     private fun registerPedometer() {
+        val useAccelerometor = true
+        if (useAccelerometor) {
+            registerAccelerometerPedometer()
+        } else {
+            registerStepCounterPedometer()
+        }
+    }
+
+    private fun registerStepCounterPedometer() {
         val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
@@ -205,6 +213,26 @@ class PedometerService : Service() {
                 sensorEventListener,
                 sensor,
                 SensorManager.SENSOR_DELAY_FASTEST
+        )
+    }
+
+    private fun registerAccelerometerPedometer() {
+        val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+        if (sensorEventListener == null) {
+            sensorEventListener = StepDetector(
+                    this,
+                    cache = true,
+                    shouldLog = true,
+                    cacheLock = pedometerCacheLock
+            )
+        }
+
+        sensorManager.registerListener(
+                sensorEventListener,
+                sensor,
+                SensorManager.SENSOR_DELAY_GAME
         )
     }
 
@@ -282,9 +310,5 @@ class PedometerService : Service() {
                     .remove(getPersistentPedometerKey(date))
                     .apply()
         }
-    }
-
-    private fun getPersistentPedometerKey(date: String): String {
-        return "$PERSISTENT_PEDOMETER_KEY/$date"
     }
 }
