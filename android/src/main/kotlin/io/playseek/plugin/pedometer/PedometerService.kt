@@ -225,7 +225,7 @@ class PedometerService : Service() {
             sensorEventListener = StepDetector(
                     this,
                     cache = true,
-                    shouldLog = true,
+                    shouldLog = false,
                     cacheLock = pedometerCacheLock
             )
         }
@@ -249,7 +249,7 @@ class PedometerService : Service() {
             override fun onSensorChanged(event: SensorEvent) {
                 val stepCount = event.values[0].toInt()
                 if (cache) {
-                    addPedometerToCache(context, stepCount, shouldLog = true)
+                    addPedometerToCache(context, stepCount, shouldLog = false)
                 }
             }
         }

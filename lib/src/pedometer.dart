@@ -35,7 +35,6 @@ class PedometerPlugin {
 
       _pedometerStream = _eventChannel.receiveBroadcastStream(
           <dynamic>[callback.toRawHandle()]).map((stepCount) {
-        print('>>>> SERVICE PEDOMETER steps: $stepCount');
         return stepCount;
       });
     }
