@@ -31,6 +31,8 @@ class PedometerService : Service() {
         @JvmStatic
         val PERSISTENT_PEDOMETER_KEY = "persistent_pedometer"
         @JvmStatic
+        val PERSISTENT_PEDOMETER_INITIALIZED_KEY = "$PERSISTENT_PEDOMETER_KEY/initialized"
+        @JvmStatic
         val PERSISTENT_PEDOMETER_SESSION_STEPS_KEY = "$PERSISTENT_PEDOMETER_KEY/session_steps"
         @JvmStatic
         val SHARED_PREFERENCES_KEY = "pedometer_plugin_cache"
@@ -258,6 +260,21 @@ class PedometerService : Service() {
     private fun addPedometerToCache(context: Context, sessionSteps: Int, shouldLog: Boolean = false) {
         synchronized(pedometerCacheLock) {
             val p = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+
+            val initialized = p.getBoolean(PERSISTENT_PEDOMETER_INITIALIZED_KEY, false)
+
+            if (!initialized) {
+                // save session initial steps
+                p
+                        .edit()
+                        .putInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, sessionSteps)
+                        .apply()
+
+                p
+                        .edit()
+                        .putBoolean(PERSISTENT_PEDOMETER_INITIALIZED_KEY, true)
+                        .apply()
+            }
 
             val todayPersistentKey = getTodayKey()
 
