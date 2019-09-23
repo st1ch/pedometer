@@ -278,8 +278,18 @@ class PedometerService : Service() {
 
             val todayPersistentKey = getTodayKey()
 
-            val cachedSessionSteps = p.getInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
+            var cachedSessionSteps = p.getInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, 0)
             val cachedTodaySteps = p.getInt(todayPersistentKey, 0)
+
+            if (cachedSessionSteps > sessionSteps) {
+                // reset cached session steps
+                p
+                        .edit()
+                        .putInt(PERSISTENT_PEDOMETER_SESSION_STEPS_KEY, sessionSteps)
+                        .apply()
+
+                cachedSessionSteps = sessionSteps
+            }
 
             val newSteps = sessionSteps - cachedSessionSteps
             val todaySteps = cachedTodaySteps + newSteps
