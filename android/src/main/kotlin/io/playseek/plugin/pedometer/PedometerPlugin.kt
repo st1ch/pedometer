@@ -1,21 +1,11 @@
 package io.playseek.plugin.pedometer
 
 import android.app.Activity
-import android.os.IBinder
-import android.os.PowerManager
 import android.util.Log
-import android.Manifest
 import android.content.Intent
-import android.app.PendingIntent
-import android.annotation.TargetApi
 import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import java.text.SimpleDateFormat
 import java.util.Date
-import android.os.Build
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -23,11 +13,9 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.EventChannel
-import org.json.JSONArray
-import org.json.JSONObject
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-import android.support.v4.content.ContextCompat
+import androidx.core.content.ContextCompat
 import android.app.ActivityManager
 
 class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, MethodCallHandler {
