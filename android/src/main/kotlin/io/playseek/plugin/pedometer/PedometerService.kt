@@ -61,9 +61,8 @@ class PedometerService : Service() {
         return null
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand")
-//        createNotificationChannel()
+    override fun onCreate() {
+        Log.d(TAG, ">>> onCreate")
 
         val notificationIntent = Intent(this, getMainActivityClass(this))
         val pendingIntent = PendingIntent.getActivity(
@@ -109,18 +108,17 @@ class PedometerService : Service() {
             )
             notificationManager.createNotificationChannel(channel)
 
-            if (!PedometerPlugin.isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
-                startForeground(1, notification)
-            }
+            startForeground(1, notification)
         } else {
-            if (!PedometerPlugin.isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
-                startForeground(1, notification)
-            }
+//            startForeground(1, notification)
         }
 
         registerPedometer()
+    }
 
-        return START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, ">>> onStartCommand")
+        return START_STICKY_COMPATIBILITY
     }
 
     override fun onDestroy() {
