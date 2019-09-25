@@ -98,7 +98,11 @@ class PedometerService : Service() {
                 .setContentIntent(pendingIntent)
                 .build()
 
-        startForeground(1, notification)
+        try {
+            startForeground(1, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, ">>> Start service error")
+        }
 
         registerPedometer()
 
