@@ -62,7 +62,7 @@ class PedometerService : Service() {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-        createNotificationChannel()
+//        createNotificationChannel()
 
         val notificationIntent = Intent(this, getMainActivityClass(this))
         val pendingIntent = PendingIntent.getActivity(
@@ -90,7 +90,7 @@ class PedometerService : Service() {
         val title = getTitle()
         val description = getDescription()
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(description)
                 .setSmallIcon(imageId)
@@ -98,11 +98,24 @@ class PedometerService : Service() {
                 .setContentIntent(pendingIntent)
                 .build()
 
-        try {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Pedometer Plugin",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+
             startForeground(1, notification)
-        } catch (e: Exception) {
-            Log.e(TAG, ">>> Start service error")
+        } else {
+//             startForeground(1, notification);
         }
+
+//        if (!isMyServiceRunning(context, PedometerService::class.java)) {
+//            startForeground(1, notification)
+//        }
 
         registerPedometer()
 
