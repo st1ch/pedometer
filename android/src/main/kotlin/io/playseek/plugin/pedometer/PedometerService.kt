@@ -110,7 +110,7 @@ class PedometerService : Service() {
 
             startForeground(1, notification)
         } else {
-//             startForeground(1, notification);
+            startForeground(1, notification);
         }
 
 //        if (!isMyServiceRunning(context, PedometerService::class.java)) {
