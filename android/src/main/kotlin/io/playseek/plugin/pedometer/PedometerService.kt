@@ -108,14 +108,14 @@ class PedometerService : Service() {
             )
             notificationManager.createNotificationChannel(channel)
 
-            startForeground(1, notification)
+            if (!isMyServiceRunning(context, PedometerService::class.java)) {
+                startForeground(1, notification)
+            }
         } else {
-            startForeground(1, notification);
+            if (!isMyServiceRunning(context, PedometerService::class.java)) {
+                startForeground(1, notification)
+            }
         }
-
-//        if (!isMyServiceRunning(context, PedometerService::class.java)) {
-//            startForeground(1, notification)
-//        }
 
         registerPedometer()
 
