@@ -90,7 +90,7 @@ class PedometerPlugin(context: Context, activity: Activity?) : StreamHandler, Me
         }
 
         @JvmStatic
-        private fun isMyServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+        fun isMyServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
             val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
                 if (serviceClass.name == service.service.className) {

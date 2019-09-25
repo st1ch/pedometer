@@ -17,6 +17,7 @@ import android.hardware.SensorManager
 import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
+import io.playseek.plugin.pedometer.PedometerPlugin
 
 class PedometerService : Service() {
     companion object {
@@ -108,11 +109,11 @@ class PedometerService : Service() {
             )
             notificationManager.createNotificationChannel(channel)
 
-            if (!isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
+            if (!PedometerPlugin.isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
                 startForeground(1, notification)
             }
         } else {
-            if (!isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
+            if (!PedometerPlugin.isMyServiceRunning(getApplicationContext(), PedometerService::class.java)) {
                 startForeground(1, notification)
             }
         }
